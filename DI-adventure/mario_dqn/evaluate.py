@@ -1,6 +1,8 @@
 """
 智能体评估函数
 """
+import os
+
 import torch
 from ding.utils import set_pkg_seed
 from mario_dqn_config import mario_dqn_config, mario_dqn_create_config
@@ -14,8 +16,18 @@ from nes_py.wrappers import JoypadSpace
 from wrapper import MaxAndSkipWrapper, WarpFrameWrapper, ScaledFloatFrameWrapper, FrameStackWrapper, \
     FinalEvalRewardEnv, RecordCAM
 
-action_dict = {2: [["right"], ["right", "A"]], 7: SIMPLE_MOVEMENT, 12: COMPLEX_MOVEMENT}
-action_nums = [2, 7, 12]
+# 动作相关配置
+action_dict = {2: [["right"], ["right", "A"]], 7: SIMPLE_MOVEMENT, 12: COMPLEX_MOVEMENT, 8: [
+    ['NOOP'],
+    ['right'],
+    ['right', 'A'],
+    ['A'],
+    ['left'],
+    ['left', 'A'],
+    ['down'],
+    ['up'],
+]}
+action_nums = [2, 7, 12, 8]
 
 
 def wrapped_mario_env(model, cam_video_path, version=0, action=2, obs=1):
@@ -82,14 +94,17 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", "-s", type=int, default=0)
     parser.add_argument("--checkpoint", "-ckpt", type=str, default='./exp/v0_1a_7f_seed0/ckpt/ckpt_best.pth.tar')
-    parser.add_argument("--replay_path", "-rp", type=str, default='./eval_videos')
+    parser.add_argument("--replay_path", "-rp", type=str, default='./eval')
     parser.add_argument("--version", "-v", type=int, default=0, choices=[0,1,2,3])
-    parser.add_argument("--action", "-a", type=int, default=7, choices=[2,7,12])
+    parser.add_argument("--action", "-a", type=int, default=7, choices=[2,7,12,8])
     parser.add_argument("--obs", "-o", type=int, default=1, choices=[1,4])
     args = parser.parse_args()
     mario_dqn_config.policy.model.obs_shape=[args.obs, 84, 84]
     mario_dqn_config.policy.model.action_shape=args.action
     ckpt_path = args.checkpoint
-    video_dir_path = args.replay_path
+    video_dir_path = args.replay_path + f'/{str(args.checkpoint).split("/")[-3]}'
+    args.replay_path = video_dir_path
+    if not os.path.isdir(video_dir_path):
+        os.mkdir(video_dir_path)
     state_dict = torch.load(ckpt_path, map_location='cpu')
     evaluate(args, state_dict=state_dict, seed=args.seed, video_dir_path=video_dir_path, eval_times=1)

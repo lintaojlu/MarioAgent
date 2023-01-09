@@ -27,7 +27,7 @@ class StickyActionWrapper(gym.ActionWrapper):
         - ``p_sticky``: possibility to select the last action
     """
 
-    def __init__(self, env: gym.Env, p_sticky: float=0.25):
+    def __init__(self, env: gym.Env, p_sticky: float = 0.25):
         super().__init__(env)
         self.p_sticky = p_sticky
         self.last_action = 0
@@ -83,8 +83,56 @@ class CoinRewardWrapper(gym.Wrapper):
 
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
-        reward += (info['coins'] - self.num_coins) * 10
+        reward += (info['coins'] - self.num_coins) * 100
         self.num_coins = info['coins']
+        return obs, reward, done, info
+
+
+# 升级奖励wrapper
+class StatusRewardWrapper(gym.ActionWrapper):
+    """
+    Overview:
+       A certain possibility to select stand
+    Interface:
+        ``__init__``, ``action``
+    Properties:
+        - env (:obj:`gym.Env`): the environment to wrap.
+        - ``p_stand``: possibility to select stand
+    """
+
+    def __init__(self, env: gym.Env, p_stand: float = 0.7):
+        super().__init__(env)
+        self.p_stand = p_stand
+        self.last_x = 0
+        self.last_status = 'small'
+        self.last_time = 400
+
+    def action(self, action):
+        # if np.random.random() < self.p_stand:
+        #     return_action = 0
+        # else:
+        return_action = action
+        return return_action
+
+    def step(self, action):
+        obs, reward, done, info = self.env.step(action)
+        # 抵消向右移动奖励，让mario尽情探索
+        # reward = reward - (info['x_pos'] - self.last_x)
+        # self.last_x = info['x_pos']
+        # 抵消时间惩罚，让mario慢慢探索
+        reward += self.last_time - info['time']
+        self.last_time = info['time']
+        # 变高奖励200
+        if info['status'] == 'tall' and self.last_status == 'small':
+            reward += 400
+            self.last_status = 'tall'
+        # 变火球状态奖励400
+        elif info['status'] == 'fireball' and self.last_status == 'tall':
+            reward += 400
+            self.last_status = 'fireball'
+        # 通关还是要奖励的
+        # if info['flag_get'] is True:
+            # reward += 200
         return obs, reward, done, info
 
 
@@ -134,14 +182,14 @@ def capped_cubic_video_schedule(episode_id):
 class RecordCAM(gym.Wrapper):
 
     def __init__(
-        self,
-        env,
-        cam_model,
-        video_folder: str,
-        episode_trigger: Callable[[int], bool] = None,
-        step_trigger: Callable[[int], bool] = None,
-        video_length: int = 0,
-        name_prefix: str = "rl-video",
+            self,
+            env,
+            cam_model,
+            video_folder: str,
+            episode_trigger: Callable[[int], bool] = None,
+            step_trigger: Callable[[int], bool] = None,
+            video_length: int = 0,
+            name_prefix: str = "rl-video",
     ):
         super(RecordCAM, self).__init__(env)
         self._env = env

@@ -6,7 +6,7 @@ from ding.config import compile_config
 from ding.worker import BaseLearner, SampleSerialCollector, InteractionSerialEvaluator, AdvancedReplayBuffer
 from ding.envs import SyncSubprocessEnvManager, DingEnvWrapper, BaseEnvManager
 from wrapper import MaxAndSkipWrapper, WarpFrameWrapper, ScaledFloatFrameWrapper, FrameStackWrapper, \
-    FinalEvalRewardEnv
+    FinalEvalRewardEnv, SparseRewardWrapper, StickyActionWrapper, CoinRewardWrapper, StatusRewardWrapper
 from policy import DQNPolicy
 from model import DQN
 from ding.utils import set_pkg_seed
@@ -20,8 +20,17 @@ import gym_super_mario_bros
 
 
 # 动作相关配置
-action_dict = {2: [["right"], ["right", "A"]], 7: SIMPLE_MOVEMENT, 12: COMPLEX_MOVEMENT}
-action_nums = [2, 7, 12]
+action_dict = {2: [["right"], ["right", "A"]], 7: SIMPLE_MOVEMENT, 12: COMPLEX_MOVEMENT, 8: [
+    ['NOOP'],
+    ['right'],
+    ['right', 'A'],
+    ['A'],
+    ['left'],
+    ['left', 'A'],
+    ['down'],
+    ['up'],
+]}
+action_nums = [2, 7, 12, 8]
 
 
 # mario环境
@@ -43,12 +52,20 @@ def wrapped_mario_env(version=0, action=7, obs=1):
                 # 默认wrapper：在评估一局游戏结束时返回累计的奖励，方便统计
                 lambda env: FinalEvalRewardEnv(env),
                 # 以下是你添加的wrapper
+                # 稀疏奖励
+                # lambda env: SparseRewardWrapper(env),
+                # 粘性动作奖励
+                # lambda env: StickyActionWrapper(env),
+                # 金币奖励
+                # lambda env: CoinRewardWrapper(env),
+                # 升级奖励
+                lambda env: StatusRewardWrapper(env),
             ]
         }
     )
 
 
-def main(cfg, args, seed=0, max_env_step=int(3e6)):
+def main(cfg, args, seed=0, max_env_step=int(5e6)):
     # Easydict类实例，包含一些配置
     cfg = compile_config(
         cfg,
@@ -103,8 +120,9 @@ def main(cfg, args, seed=0, max_env_step=int(3e6)):
         # 根据当前训练迭代数决定是否进行评估
         if evaluator.should_eval(learner.train_iter):
             stop, reward = evaluator.eval(learner.save_checkpoint, learner.train_iter, collector.envstep)
-            if stop:
-                break
+            # 如果分数到达cfg中设定的分数，也停止训练
+            # if stop:
+            #     break
         # 更新epsilon greedy信息
         eps = epsilon_greedy(collector.envstep)
         # 经验收集器从环境中收集经验
@@ -130,11 +148,11 @@ if __name__ == "__main__":
     # 游戏版本，v0 v1 v2 v3 四种选择
     parser.add_argument("--version", "-v", type=int, default=0, choices=[0,1,2,3])
     # 动作集合种类，包含[["right"], ["right", "A"]]、SIMPLE_MOVEMENT、COMPLEX_MOVEMENT，分别对应2、7、12个动作
-    parser.add_argument("--action", "-a", type=int, default=7, choices=[2,7,12])
+    parser.add_argument("--action", "-a", type=int, default=7, choices=[2,7,12,8])
     # 观测空间叠帧数目，不叠帧或叠四帧
     parser.add_argument("--obs", "-o", type=int, default=1, choices=[1,4])
     args = parser.parse_args()
-    mario_dqn_config.exp_name = 'exp/v'+str(args.version)+'_'+str(args.action)+'a_'+str(args.obs)+'f_seed'+str(args.seed)
+    mario_dqn_config.exp_name = 'exp/v'+str(args.version)+'_'+str(args.action)+'a_'+str(args.obs)+'f_seed'+str(args.seed)+'_status_notime'
     mario_dqn_config.policy.model.obs_shape=[args.obs, 84, 84]
     mario_dqn_config.policy.model.action_shape=args.action
     main(deepcopy(mario_dqn_config), args, seed=args.seed)

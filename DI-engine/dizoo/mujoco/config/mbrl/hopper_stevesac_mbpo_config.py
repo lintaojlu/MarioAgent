@@ -8,7 +8,7 @@ obs_shape = 11
 action_shape = 3
 
 # gpu
-cuda = True
+cuda = False
 
 main_config = dict(
     exp_name='hopper_stevesac_mbpo_seed0',

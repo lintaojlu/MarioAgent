@@ -8,7 +8,7 @@ obs_shape = 17
 action_shape = 6
 
 # gpu
-cuda = True
+cuda = False
 
 main_config = dict(
     exp_name='halfcheetach_mbsac_mbpo_seed0',
