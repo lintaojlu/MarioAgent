@@ -1,8 +1,28 @@
 # 超级马里奥兄弟--林韬&王福临
+- 本项目基于OpenDILab实验室的[mario_dqn项目](https://github.com/opendilab/DI-adventure/tree/results/mario_dqn)进行马里奥智能体的特征工程探索。
+- DI-adventure包含本次实验的代码；DI-engine为支撑引擎，无需关注。
+- 本项目的学术海报见mario_poster_06林韬&王福临.pdf
+
+## 环境说明
+环境要求见DI-adventure/mario_dqn/requirements.txt
+
+## 训练方法
+对智能体进行训练
+```bash
+python3 -u mario_dqn_main.py -s <SEED> -v <VERSION> -a <ACTION SET> -o <FRAME NUMBER>
+# 以下命令的含义是，设置seed=0，游戏版本v0，动作数目为7（即SIMPLE_MOVEMENT），观测通道数目为1（即不进行叠帧）进行训练。
+python3 -u mario_dqn_main.py -s 0 -v 0 -a 7 -o 1
+```
+## 评估方法
+选择训练好的模型（check_point）对智能体进行评估，并保存录像
+```bash
+python3 -u evaluate.py -ckpt <CHECKPOINT_PATH> -v <VERSION> -a <ACTION SET> -o <FRAME NUMBER>
+```
+
 ## 算法改进
-- 主要为了提升马里奥通关速度
-- 
-## 特征空间处理
+- 可选择DuelingDQN
+
+## 特征空间处理及结论
 ### 观测空间（observation space）
 - 图像降采样，即将游戏版本从`v0`更改为`v1`
   - 去掉背景使得训练的收敛速度得以加速，主要原因是去掉了白云以及小灌木对训练的影响。
@@ -48,6 +68,25 @@ r=v+c+d（位移、时间惩罚、死亡惩罚）
   - 完全目标导向。有时候在结果出来前无法判断中途的某个动作的好坏。
   - 结果：5e6个step下不收敛
 
+#### 交互`info`信息
+每次交互能获得的信息包含在`info`中 
+The `info` dictionary returned by the `step` method contains the following
+keys:
+
+| Key        | Type   | Description                                           |
+|:-----------|:-------|:------------------------------------------------------|
+| `coins   ` | `int`  | The number of collected coins                         |
+| `flag_get` | `bool` | True if Mario reached a flag or ax                    |
+| `life`     | `int`  | The number of lives left, i.e., _{3, 2, 1}_           |
+| `score`    | `int`  | The cumulative in-game score                          |
+| `stage`    | `int`  | The current stage, i.e., _{1, ..., 4}_                |
+| `status`   | `str`  | Mario's status, i.e., _{'small', 'tall', 'fireball'}_ |
+| `time`     | `int`  | The time left on the clock                            |
+| `world`    | `int`  | The current world, i.e., _{1, ..., 8}_                |
+| `x_pos`    | `int`  | Mario's _x_ position in the stage (from the left)     |
+| `y_pos`    | `int`  | Mario's _y_ position in the stage (from the bottom)   |
+
+### 特征工程探索表格展示
 | seed | version | action | observation | wrapper       | psss 1-1 |
 |------|---------|--------|-------------|---------------|----------|
 | 0    | 0       | 7      | 1           | \             | n        |
@@ -68,30 +107,8 @@ r=v+c+d（位移、时间惩罚、死亡惩罚）
 | 0    | 1       | 12     | 4           | coin reward   | y        |
 | 0    | 1       | 12     | 4           | status reward | n        |
 | 0    | 1       | 8      | 4           | status reward | n        |
-命令格式：
-```bash
-python3 -u mario_dqn_main.py -s 0 -v 0 -a 7 -o 1
-```
 
-### 交互`info`信息
-每次交互能获得的信息包含在`info`中 
-The `info` dictionary returned by the `step` method contains the following
-keys:
-
-| Key        | Type   | Description                                           |
-|:-----------|:-------|:------------------------------------------------------|
-| `coins   ` | `int`  | The number of collected coins                         |
-| `flag_get` | `bool` | True if Mario reached a flag or ax                    |
-| `life`     | `int`  | The number of lives left, i.e., _{3, 2, 1}_           |
-| `score`    | `int`  | The cumulative in-game score                          |
-| `stage`    | `int`  | The current stage, i.e., _{1, ..., 4}_                |
-| `status`   | `str`  | Mario's status, i.e., _{'small', 'tall', 'fireball'}_ |
-| `time`     | `int`  | The time left on the clock                            |
-| `world`    | `int`  | The current world, i.e., _{1, ..., 8}_                |
-| `x_pos`    | `int`  | Mario's _x_ position in the stage (from the left)     |
-| `y_pos`    | `int`  | Mario's _y_ position in the stage (from the bottom)   |
-
-## 分析
+## 分析方式
 ### tensorboard 中指标含义如下
 tensorboard结果分为 buffer, collector, evaluator, learner 四个部分，以\_iter结尾表明横轴是训练迭代iteration数目，以\_step结尾表明横轴是与环境交互步数step。
 一般而言会更加关注与环境交互的步数，即 collector/evaluator/learner\_step。
