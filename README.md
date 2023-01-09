@@ -1,7 +1,7 @@
 # 超级马里奥兄弟--林韬&王福临
 - 本项目基于OpenDILab实验室的[mario_dqn项目](https://github.com/opendilab/DI-adventure/tree/results/mario_dqn)进行马里奥智能体的特征工程探索。
 - DI-adventure包含本次实验的代码；DI-engine为支撑引擎，无需关注。
-- 本项目的学术海报见mario_poster_06林韬&王福临.pdf
+- 本项目的学术海报见mario_poster_06林韬&王福临.pptx
 
 ## 环境说明
 环境要求见DI-adventure/mario_dqn/requirements.txt
